@@ -67,7 +67,7 @@ const PitchTest = () => {
         <label>Playback Speed: </label>
         <input
           type="range"
-          min="0.3"
+          min="0.1"
           max="2"
           step="0.1"
           value={playbackRate}
