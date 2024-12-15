@@ -85,17 +85,23 @@ const PitchTest = () => {
   const downloadModifiedAudio = async (index) => {
     if (!audioBuffersRef.current[index]) return;
 
-    // Create an OfflineAudioContext for rendering
+    // Calculate the adjusted length based on playback rate
+    const originalLength = audioBuffersRef.current[index].length;
+    const sampleRate = audioBuffersRef.current[index].sampleRate;
+    const playbackRate = playbackRates[index];
+    const adjustedLength = Math.ceil(originalLength / playbackRate);
+
+    // Create an OfflineAudioContext with the adjusted length
     const offlineContext = new OfflineAudioContext(
-      2, // Number of channels
-      audioBuffersRef.current[index].length,
-      audioBuffersRef.current[index].sampleRate
+      2, // Stereo channels
+      adjustedLength, // Adjusted length for playback rate
+      sampleRate // Original sample rate
     );
 
     // Create an AudioBufferSourceNode
     const source = offlineContext.createBufferSource();
     source.buffer = audioBuffersRef.current[index];
-    source.playbackRate.value = playbackRates[index]; // Apply playback rate
+    source.playbackRate.value = playbackRate; // Apply playback rate
 
     source.connect(offlineContext.destination);
     source.start();
