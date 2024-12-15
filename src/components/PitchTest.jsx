@@ -3,16 +3,14 @@ import React, { useState, useRef, useEffect } from "react";
 const PitchTest = () => {
   const [audioFiles, setAudioFiles] = useState([
     "/audio/august2019.mp3",
-    "/audio/circus.mp3",
-    "/audio/littlethings.mp3",
     "/audio/oompahpolks.mp3",
     "/audio/popsicle.mp3",
     "/audio/roselita.mp3",
     "/audio/smoothnylons.mp3",
     "/audio/taketowhere.mp3",
     "/audio/towntalk.mp3",
-    "/audio/waffles.mp3",
     "/audio/primabossanova.mp3",
+    "/audio/easymover.mp3",
   ]);
 
   const [playbackRates, setPlaybackRates] = useState(
@@ -84,19 +82,99 @@ const PitchTest = () => {
     setPlaybackRates(newRates);
   };
 
+  const downloadModifiedAudio = async (index) => {
+    if (!audioBuffersRef.current[index]) return;
+
+    // Create an OfflineAudioContext for rendering
+    const offlineContext = new OfflineAudioContext(
+      2, // Number of channels
+      audioBuffersRef.current[index].length,
+      audioBuffersRef.current[index].sampleRate
+    );
+
+    // Create an AudioBufferSourceNode
+    const source = offlineContext.createBufferSource();
+    source.buffer = audioBuffersRef.current[index];
+    source.playbackRate.value = playbackRates[index]; // Apply playback rate
+
+    source.connect(offlineContext.destination);
+    source.start();
+
+    // Render the audio offline
+    const renderedBuffer = await offlineContext.startRendering();
+
+    // Convert to WAV/Blob for download
+    const blob = bufferToWave(renderedBuffer, renderedBuffer.length);
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary link to trigger the download
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = `modified-audio-${index}.wav`;
+    document.body.appendChild(a);
+    a.click();
+
+    // Clean up
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  // Helper: Convert AudioBuffer to WAV
+  const bufferToWave = (buffer, length) => {
+    const numOfChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const formatLength = 44 + length * numOfChannels * 2;
+    const bufferArray = new ArrayBuffer(formatLength);
+    const view = new DataView(bufferArray);
+
+    // WAV header
+    writeString(view, 0, "RIFF");
+    view.setUint32(4, 36 + length * numOfChannels * 2, true);
+    writeString(view, 8, "WAVE");
+    writeString(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numOfChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numOfChannels * 2, true);
+    view.setUint16(32, numOfChannels * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, "data");
+    view.setUint32(40, length * numOfChannels * 2, true);
+
+    // WAV data
+    let offset = 44;
+    for (let i = 0; i < buffer.length; i++) {
+      for (let channel = 0; channel < numOfChannels; channel++) {
+        const sample = buffer.getChannelData(channel)[i] * 32767;
+        view.setInt16(offset, sample < 0 ? sample : sample, true);
+        offset += 2;
+      }
+    }
+
+    return new Blob([view], { type: "audio/wav" });
+  };
+
+  // Helper: Write string to DataView
+  const writeString = (view, offset, string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
   return (
     <div>
       <h1>Audio Players</h1>
       {audioFiles.map((file, index) => (
         <div key={index} style={{ marginBottom: "20px" }}>
           <h3>File: {file.split("/").pop()}</h3>
-          <button onClick={() => playSound(index)}>Play</button>
 
           <div>
             <label>Playback Speed: </label>
             <input
               type="range"
-              min="0.1"
+              min="0.05"
               max="2"
               step="0.05"
               value={playbackRates[index]}
@@ -104,8 +182,10 @@ const PitchTest = () => {
                 handlePlaybackRateChange(index, parseFloat(e.target.value))
               }
             />
-            <span>{playbackRates[index]}x</span>
+            <span>Pitch {playbackRates[index]}</span>
           </div>
+          <button onClick={() => playSound(index)}>Play</button>
+          <button onClick={() => downloadModifiedAudio(index)}>Download</button>
         </div>
       ))}
     </div>
