@@ -1,16 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
+import path from "path-browserify";
 
 const PitchTest = () => {
   const [audioFiles, setAudioFiles] = useState([
-    "/audio/august2019.mp3",
+    // "/audio/august2019.mp3",
     "/audio/oompahpolks.mp3",
-    "/audio/popsicle.mp3",
-    "/audio/roselita.mp3",
-    "/audio/smoothnylons.mp3",
-    "/audio/taketowhere.mp3",
-    "/audio/towntalk.mp3",
-    "/audio/primabossanova.mp3",
-    "/audio/easymover.mp3",
+    // "/audio/popsicle.mp3",
+    // "/audio/sweetstory.mp3",
+    // "/audio/smoothnylons.mp3",
+    // "/audio/taketowhere.mp3",
+    // "/audio/towntalk.mp3",
+    // "/audio/easymover.mp3",
+    // "/audio/Diamonds.mp3",
+    "/audio/shop.mp3",
+    "/audio/toystory.mp3",
+    "/audio/mrlonely.mp3",
+    "/audio/firefly.mp3",
+    "/audio/catgroove.mp3",
+    "/audio/pizzadelivery!.mp3",
   ]);
 
   const [playbackRates, setPlaybackRates] = useState(
@@ -82,7 +89,7 @@ const PitchTest = () => {
     setPlaybackRates(newRates);
   };
 
-  const downloadModifiedAudio = async (index) => {
+  const downloadModifiedAudio = async (index, fileName) => {
     if (!audioBuffersRef.current[index]) return;
 
     // Calculate the adjusted length based on playback rate
@@ -117,8 +124,9 @@ const PitchTest = () => {
     const a = document.createElement("a");
     a.style.display = "none";
     a.href = url;
-    a.download = `modified-audio-${index}.wav`;
+    a.download = `${fileName} - Pitch ${playbackRate}.wav`;
     document.body.appendChild(a);
+    console.log(audioBuffersRef.current);
     a.click();
 
     // Clean up
@@ -168,13 +176,15 @@ const PitchTest = () => {
       view.setUint8(offset + i, string.charCodeAt(i));
     }
   };
-
+  audioFiles.map((file) => {
+    console.log(path.basename(file));
+  });
   return (
     <div>
       <h1>Audio Players</h1>
       {audioFiles.map((file, index) => (
         <div key={index} style={{ marginBottom: "20px" }}>
-          <h3>File: {file.split("/").pop()}</h3>
+          <h3>File: {path.basename(file)}</h3>
 
           <div>
             <label>Playback Speed: </label>
@@ -191,7 +201,11 @@ const PitchTest = () => {
             <span>Pitch {playbackRates[index]}</span>
           </div>
           <button onClick={() => playSound(index)}>Play</button>
-          <button onClick={() => downloadModifiedAudio(index)}>Download</button>
+          <button
+            onClick={() => downloadModifiedAudio(index, path.basename(file))}
+          >
+            Download
+          </button>
         </div>
       ))}
     </div>
